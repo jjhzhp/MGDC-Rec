@@ -21,9 +21,8 @@ class POIDataset(Dataset):
         self.padding_idx = padding_idx
         self.device = device
 
-        # get user's trajectory, reversed trajectory and its length
+        # get user's trajectory and its length
         self.users_trajs_dict, self.users_trajs_lens_dict = get_user_complete_traj(self.sessions_dict)
-        self.users_rev_trajs_dict = get_user_reverse_traj(self.users_trajs_dict)
 
         # generate poi-session incidence matrix, its degree and hypergraph
         self.H_pu = gen_sparse_H_user(self.sessions_dict, num_pois, self.num_users)    # [L, U]
@@ -69,13 +68,11 @@ class POIDataset(Dataset):
         user_seq = self.users_trajs_dict[user_idx]
         user_seq_len = self.users_trajs_lens_dict[user_idx]
         user_seq_mask = [1] * user_seq_len
-        user_rev_seq = self.users_rev_trajs_dict[user_idx]
         label = self.labels_dict[user_idx]
 
         sample = {
             "user_idx": torch.tensor(user_idx).to(self.device),
             "user_seq": torch.tensor(user_seq).to(self.device),
-            "user_rev_seq": torch.tensor(user_rev_seq).to(self.device),
             "user_seq_len": torch.tensor(user_seq_len).to(self.device),
             "user_seq_mask": torch.tensor(user_seq_mask).to(self.device),
             "label": torch.tensor(label).to(self.device),
@@ -92,7 +89,6 @@ def collate_fn_4sq(batch, padding_value=3835):
     # get each item in the batch
     batch_user_idx = []
     batch_user_seq = []
-    batch_user_rev_seq = []
     batch_user_seq_len = []
     batch_user_seq_mask = []
     batch_label = []
@@ -101,12 +97,10 @@ def collate_fn_4sq(batch, padding_value=3835):
         batch_user_seq_len.append(item["user_seq_len"])
         batch_label.append(item["label"])
         batch_user_seq.append(item["user_seq"])
-        batch_user_rev_seq.append(item["user_rev_seq"])
         batch_user_seq_mask.append(item["user_seq_mask"])
 
-    # pad seq and rev seq
+    # pad sequences
     pad_user_seq = pad_sequence(batch_user_seq, batch_first=True, padding_value=padding_value)
-    pad_user_rev_seq = pad_sequence(batch_user_rev_seq, batch_first=True, padding_value=padding_value)
     pad_user_seq_mask = pad_sequence(batch_user_seq_mask, batch_first=True, padding_value=0)
 
     # stack list obj to a torch.tensor
@@ -117,7 +111,6 @@ def collate_fn_4sq(batch, padding_value=3835):
     collate_sample = {
         "user_idx": batch_user_idx,
         "user_seq": pad_user_seq,
-        "user_rev_seq": pad_user_rev_seq,
         "user_seq_len": batch_user_seq_len,
         "user_seq_mask": pad_user_seq_mask,
         "label": batch_label,

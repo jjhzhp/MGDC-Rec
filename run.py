@@ -11,7 +11,8 @@ import torch.optim as optim
 import random
 
 from dataset import *
-from model import DCHL, FocalLoss, NegativeSamplingLoss, FGM
+from model import MGDC
+from model_components import NegativeSamplingLoss, FGM
 from metrics import batch_performance
 from utils import *
 
@@ -143,7 +144,7 @@ def main():
     args.contrastive_temperature = getattr(args, 'temperature', 0.1)
     args.contrastive_weight = getattr(args, 'lambda_cl', 0.1)
     
-    model = DCHL(NUM_USERS, NUM_POIS, args, device)
+    model = MGDC(NUM_USERS, NUM_POIS, args, device)
     model = model.to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.decay)

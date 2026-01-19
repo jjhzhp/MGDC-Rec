@@ -35,16 +35,6 @@ def get_user_complete_traj(sessions_dict):
     return users_trajs_dict, users_trajs_lens_dict
 
 
-def get_user_reverse_traj(users_trajs_dict):
-    """Get each user's reversed trajectory according to her complete trajectory"""
-    users_rev_trajs_dict = {}
-    for userID, traj in users_trajs_dict.items():
-        rev_traj = traj[::-1]
-        users_rev_trajs_dict[userID] = rev_traj
-
-    return users_rev_trajs_dict
-
-
 def haversine_distance(lon1, lat1, lon2, lat2):
     """Haversine distance"""
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
@@ -93,25 +83,10 @@ def gen_sparse_directed_H_poi(users_trajs_dict, num_pois):
 
 
 def get_hyper_deg(incidence_matrix):
-    '''
-    # incidence_matrix = [num_nodes, num_hyperedges]
-    hyper_deg = np.array(incidence_matrix.sum(axis=axis)).squeeze()
-    hyper_deg[hyper_deg == 0.] = 1
-    hyper_deg = sp.diags(1.0 / hyper_deg)
-    '''
-
-    # H  = [num_node, num_edge]
-    # DV = [num_node, num_node]
-    # DV * H = [num_node, num_edge]
-
-    # HT = [num_edge, num_node]
-    # DE = [num_edge, num_edge]
-    # DE * HT = [num_edge, num_node]
-
-    # hyper_deg = incidence_matrix.sum(1)
-    # inv_hyper_deg = hyper_deg.power(-1)
-    # inv_hyper_deg_diag = sp.diags(inv_hyper_deg.toarray()[0])
-
+    """
+    Compute degree matrix for hypergraph
+    Returns diagonal matrix with inverse of row sums
+    """
     rowsum = np.array(incidence_matrix.sum(1))
     d_inv = np.power(rowsum, -1).flatten()
     d_inv[np.isinf(d_inv)] = 0.
