@@ -67,9 +67,9 @@ This folder (datasets) contains 2 datasets, including
 | TKY     | 2,173  | 7,038 | 306,778    | 41,307   |
 
 The data format includes:
-- `train_poi_zero.txt`: Training trajectories
-- `test_poi_zero.txt`: Testing trajectories
-- `*_pois_coos_poi_zero.pkl`: POI geographic coordinates
+- `train.txt`: Training trajectories
+- `test.txt`: Testing trajectories
+- `*_poi_coords.pkl`: POI geographic coordinates
 
 ## Running
 You can use the NYC dataset as an example to run it as:
