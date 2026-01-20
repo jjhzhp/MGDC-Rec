@@ -49,11 +49,6 @@ logs/
 results/
 outputs/
 
-# Dataset files (too large for git)
-datasets/NYC/*.pkl
-datasets/TKY/*.pkl
-datasets/*.pkl
-
 # Temporary files
 *.tmp
 *.bak
@@ -62,7 +57,3 @@ datasets/*.pkl
 # OS files
 Thumbs.db
 .DS_Store
-
-# PDF (optional - comment out if you want to include the paper)
-*.pdf
-
