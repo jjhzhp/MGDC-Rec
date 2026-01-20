@@ -14,7 +14,7 @@ MGDC-Rec: Multi-Granularity Disentangled Contrastive Learning with Multi-Strateg
 To address intent entanglement and data sparsity in POI recommendation, we propose a multi-granularity disentangled contrastive learning framework. The model consists of three main components:
 
 <p align="center">
-<img align="middle" src="Figures/fig_model.pdf" width="800"/>
+<img align="middle" src="Figures/fig_model.png" width="800"/>
 </p>
 <p align = "center">
 <b>Figure 1. The overall framework of the proposed MGDC-Rec model.</b>
@@ -30,14 +30,14 @@ To address intent entanglement and data sparsity in POI recommendation, we propo
 3. **Multi-Strategy Enhanced Training**: We integrate mixed negative sampling strategy (combining hard, popular, and random negatives), adversarial training (using Fast Gradient Method), and Focal Loss (to address class imbalance) to significantly enhance model robustness and performance.
 
 <p align="center">
-<img align="middle" src="Figures/fig_CL.pdf" width="600"/>
+<img align="middle" src="Figures/fig_CL.png" width="600"/>
 </p>
 <p align = "center">
 <b>Figure 2. Illustration of the Multi-Granularity Disentangled Contrastive Learning module.</b>
 </p>
 
 <p align="center">
-<img align="middle" src="Figures/fig_Enh.pdf" width="600"/>
+<img align="middle" src="Figures/fig_Enh.png" width="600"/>
 </p>
 <p align = "center">
 <b>Figure 3. Illustration of the Multi-Strategy Enhanced Training.</b>
