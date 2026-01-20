@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from utils import haversine_distance
+from config import DEFAULT_MODEL_CONFIG, TEMPORAL_CONFIG
 
 # Import components from model_components.py
 from model_components import (
@@ -15,7 +16,6 @@ from model_components import (
     DirectedHyperConvNetwork,
     SeqGraphRepNetwork
 )
-
 
 class MGDC(nn.Module):
     def __init__(self, num_users, num_pois, args, device):
@@ -59,7 +59,8 @@ class MGDC(nn.Module):
         self.user_seq_gate = nn.Sequential(nn.Linear(args.emb_dim, 1), nn.Sigmoid())
 
         # temporal-augmentation
-        self.pos_embeddings = nn.Embedding(1500, self.emb_dim, padding_idx=0)
+        max_pos_emb = getattr(args, 'max_position_embeddings', TEMPORAL_CONFIG['max_position_embeddings'])
+        self.pos_embeddings = nn.Embedding(max_pos_emb, self.emb_dim, padding_idx=0)
         self.w_1 = nn.Linear(2 * self.emb_dim, self.emb_dim)
         self.w_2 = nn.Parameter(torch.Tensor(self.emb_dim, 1))
         self.glu1 = nn.Linear(self.emb_dim, self.emb_dim)
@@ -103,9 +104,10 @@ class MGDC(nn.Module):
         # contrastive learning weight
         self.contrastive_weight = getattr(args, 'contrastive_weight', 0.1)
 
-        self.info_nce_weight = 0.33
-        self.focal_loss_weight = 0.33
-        self.neg_sampling_weight = 0.34
+        # Multi-loss mixing weights (should sum to ~1.0)
+        self.info_nce_weight = getattr(args, 'info_nce_weight', 0.33)
+        self.focal_loss_weight = getattr(args, 'focal_loss_weight', 0.33)
+        self.neg_sampling_weight = getattr(args, 'neg_sampling_weight', 0.34)
 
     def _build_user_trajectory_graph(self, batch, pois_coos_dict=None):
         """

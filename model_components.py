@@ -503,4 +503,3 @@ class SeqGraphRepNetwork(nn.Module):
 
         S_u = torch.stack([seq.mean(dim=0) for seq in output], dim=0)
         return S_u
-

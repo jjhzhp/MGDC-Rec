@@ -9,20 +9,24 @@ import datetime
 import torch
 import torch.optim as optim
 import random
+import numpy as np
+from torch.utils.data import DataLoader
 
-from dataset import *
+from dataset import POIDataset, collate_fn_4sq
 from model import MGDC
 from model_components import NegativeSamplingLoss, FGM
-from metrics import batch_performance
-from utils import *
+from utils import batch_performance, smart_memory_management
+from config import get_dataset_config, get_dataset_paths, EVALUATION_K_VALUES
 
 
-# clear cache
-torch.cuda.empty_cache()
+# Clear cache at startup
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    
+# Configure cuDNN for reproducibility
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.enabled = True
-
 
 # parse argument
 parser = argparse.ArgumentParser()
@@ -104,27 +108,30 @@ def main():
     logging.info("1. Parse Arguments")
     logging.info(args)
     logging.info("device: {}".format(device))
-    if args.dataset == "TKY":
-        NUM_USERS = 2173
-        NUM_POIS = 7038
-        PADDING_IDX = NUM_POIS
-    elif args.dataset == "NYC":
-        NUM_USERS = 834
-        NUM_POIS = 3835
-        PADDING_IDX = NUM_POIS
+    
+    # Get dataset configuration
+    dataset_config = get_dataset_config(args.dataset)
+    dataset_paths = get_dataset_paths(args.dataset)
+    
+    NUM_USERS = dataset_config['num_users']
+    NUM_POIS = dataset_config['num_pois']
+    PADDING_IDX = dataset_config['padding_idx']
+    
+    logging.info(f"Dataset: {dataset_config['dataset_name']}")
+    logging.info(f"  Users: {NUM_USERS}, POIs: {NUM_POIS}, Padding Index: {PADDING_IDX}")
 
     # Load Dataset
     logging.info("2. Load Dataset")
-    train_dataset = POIDataset(data_filename="datasets/{}/train_poi_zero.txt".format(args.dataset),
-                               pois_coos_filename="datasets/{}/{}_pois_coos_poi_zero.pkl".format(args.dataset, args.dataset),
+    train_dataset = POIDataset(data_filename=dataset_paths['train_data'],
+                               pois_coos_filename=dataset_paths['pois_coos'],
                                num_users=NUM_USERS,
                                num_pois=NUM_POIS,
                                padding_idx=PADDING_IDX,
                                args=args,
                                device=device)
 
-    test_dataset = POIDataset(data_filename="datasets/{}/test_poi_zero.txt".format(args.dataset),
-                              pois_coos_filename="datasets/{}/{}_pois_coos_poi_zero.pkl".format(args.dataset, args.dataset),
+    test_dataset = POIDataset(data_filename=dataset_paths['test_data'],
+                              pois_coos_filename=dataset_paths['pois_coos'],
                               num_users=NUM_USERS,
                               num_pois=NUM_POIS,
                               padding_idx=PADDING_IDX,
@@ -175,7 +182,7 @@ def main():
 
     # Train
     logging.info("5. Start Training")
-    Ks_list = [1, 5, 10, 20]
+    Ks_list = EVALUATION_K_VALUES
     final_results = {"Rec1": 0.0, "Rec5": 0.0, "Rec10": 0.0, "Rec20": 0.0,
                      "NDCG1": 0.0, "NDCG5": 0.0, "NDCG10": 0.0, "NDCG20": 0.0,
                      }
@@ -194,8 +201,6 @@ def main():
         train_ndcg_array = np.zeros(shape=(len(train_dataloader), len(Ks_list)))
         for idx, batch in enumerate(train_dataloader):
             logging.info("Train. Batch {}/{}".format(idx, len(train_dataloader)))
-            
-            torch.cuda.empty_cache()
             
             optimizer.zero_grad()
 
@@ -244,6 +249,10 @@ def main():
                 train_ndcg_array[idx, col_idx] = ndcg
             
             del predictions
+
+        # Smart memory cleanup after training epoch
+        if smart_memory_management():
+            logging.info("GPU memory cache cleared (usage > 85%)")
 
         logging.info("Training finishes at this epoch. It takes {} min".format((time.time() - start_time) / 60))
         logging.info("Training loss: {:.4f}".format(train_loss / len(train_dataloader)))

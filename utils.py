@@ -88,8 +88,7 @@ def get_hyper_deg(incidence_matrix):
     Returns diagonal matrix with inverse of row sums
     """
     rowsum = np.array(incidence_matrix.sum(1))
-    d_inv = np.power(rowsum, -1).flatten()
-    d_inv[np.isinf(d_inv)] = 0.
+    d_inv = np.divide(1.0, rowsum, out=np.zeros_like(rowsum, dtype=float), where=rowsum!=0).flatten()
     d_mat_inv = sp.diags(d_inv)
 
     return d_mat_inv
@@ -129,7 +128,7 @@ def csr_matrix_drop_edge(csr_adj_matrix, keep_rate):
     edgeNum = row.shape[0]
 
     # generate edge mask
-    mask = np.floor(np.random.rand(edgeNum) + keep_rate).astype(np.bool_)
+    mask = np.floor(np.random.rand(edgeNum) + keep_rate).astype(bool)
 
     # get new values and indices
     new_row = row[mask]
@@ -140,3 +139,65 @@ def csr_matrix_drop_edge(csr_adj_matrix, keep_rate):
     drop_adj_matrix = sp.csr_matrix((new_values, (new_row, new_col)), shape=coo.shape)
 
     return drop_adj_matrix
+
+
+def hit_k(y_pred, y_true, k):
+    """Calculate Hit@K metric"""
+    y_pred_indices = y_pred.topk(k=k).indices.tolist()
+    if y_true in y_pred_indices:
+        return 1
+    else:
+        return 0
+
+
+def ndcg_k(y_pred, y_true, k):
+    """Calculate NDCG@K metric"""
+    y_pred_indices = y_pred.topk(k=k).indices.tolist()
+    if y_true in y_pred_indices:
+        position = y_pred_indices.index(y_true) + 1
+        return 1 / np.log2(1 + position)
+    else:
+        return 0
+
+
+def batch_performance(batch_y_pred, batch_y_true, k):
+    """Calculate batch recall and NDCG"""
+    batch_size = batch_y_pred.size(0)
+    batch_recall = 0
+    batch_ndcg = 0
+    for idx in range(batch_size):
+        hit = hit_k(batch_y_pred[idx], batch_y_true[idx], k)
+        batch_recall += hit
+        ndcg = ndcg_k(batch_y_pred[idx], batch_y_true[idx], k)
+        batch_ndcg += ndcg
+
+    recall = batch_recall / batch_size
+    ndcg = batch_ndcg / batch_size
+
+    return recall, ndcg
+
+
+def smart_memory_management(threshold_ratio=0.85):
+    """
+    Smart GPU memory management - only clear cache when necessary
+    
+    Args:
+        threshold_ratio: Memory usage ratio threshold (0-1)
+                        If memory usage > threshold, clear cache
+    
+    Returns:
+        bool: True if cache was cleared, False otherwise
+    """
+    if not torch.cuda.is_available():
+        return False
+    
+    allocated = torch.cuda.memory_allocated()
+    reserved = torch.cuda.memory_reserved()
+    
+    if reserved > 0:
+        usage_ratio = allocated / reserved
+        if usage_ratio > threshold_ratio:
+            torch.cuda.empty_cache()
+            return True
+    
+    return False

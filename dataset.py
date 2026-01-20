@@ -1,10 +1,19 @@
 # coding=utf-8
 
-from utils import *
+from utils import (
+    load_list_with_pkl,
+    load_dict_from_pkl,
+    get_user_complete_traj,
+    gen_sparse_H_user,
+    gen_sparse_directed_H_poi,
+    csr_matrix_drop_edge,
+    get_hyper_deg,
+    transform_csr_matrix_to_tensor,
+    get_all_users_seqs,
+)
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch
-
 
 class POIDataset(Dataset):
     def __init__(self, data_filename, pois_coos_filename, num_users, num_pois, padding_idx, args, device):
@@ -81,10 +90,13 @@ class POIDataset(Dataset):
         return sample
 
 
-def collate_fn_4sq(batch, padding_value=3835):
+def collate_fn_4sq(batch, padding_value):
     """
     Pad sequence in the batch into a fixed length
-    batch: list obj
+    
+    Args:
+        batch: list of batch items
+        padding_value: Value to use for padding (should be num_pois for the dataset)
     """
     # get each item in the batch
     batch_user_idx = []
